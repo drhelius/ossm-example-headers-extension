@@ -1,0 +1,12 @@
+apiVersion: maistra.io/v1alpha1
+kind: ServiceMeshExtension
+metadata:
+  name: ossm-example-headers-extension
+spec:
+  config: my-wasm-value
+  image: quay.io/isanchez/ossm-example-headers-extension:1.0.0
+  phase: PostAuthZ
+  priority: 100
+  workloadSelector:
+    labels:
+      app: httpbin
