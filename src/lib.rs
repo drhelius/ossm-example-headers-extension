@@ -1,6 +1,7 @@
 use proxy_wasm::traits::*;
 use proxy_wasm::types::*;
-use std::str;
+use serde_json::{Value};
+use std::collections::HashMap;
 use log::trace;
 
 #[no_mangle]
@@ -8,13 +9,13 @@ pub fn _start() {
     proxy_wasm::set_log_level(LogLevel::Trace);
     proxy_wasm::set_root_context(|_| -> Box<dyn RootContext> {
         Box::new(HeaderReplaceRootContext{
-            header_content: "".to_string(),
+            headers: HashMap::new()
         })
     });
 }
 
 struct HeaderReplaceFilter{
-    header_content: String
+    headers: HashMap<String, String>
 }
 
 impl Context for HeaderReplaceFilter {}
@@ -26,8 +27,11 @@ impl HttpContext for HeaderReplaceFilter {
         for (name, value) in &self.get_http_request_headers() {
             trace!("{}: {}", name, value);
             if name.eq("custom-header") {
+
+                let config_header = &self.headers.get("my-key");
+
                 self.add_http_request_header("Custom-WASM-Header", value);
-                self.add_http_request_header("Custom-WASM-Config-Header", self.header_content.as_str());
+                self.add_http_request_header("Custom-WASM-Config-Header", config_header.as_deref().unwrap_or(&"key not found".to_string()));
                 self.set_http_request_header("custom-header", None);
             }
         }
@@ -37,7 +41,7 @@ impl HttpContext for HeaderReplaceFilter {
 }
 
 struct HeaderReplaceRootContext {
-    header_content: String
+    headers: HashMap<String, String>
 }
 
 impl Context for HeaderReplaceRootContext {}
@@ -55,14 +59,14 @@ impl RootContext for HeaderReplaceRootContext {
             for (key, value) in config.as_object().unwrap().iter() {
                 m.insert(key.to_owned(), String::from(value.as_str().unwrap()));
             }
-            self.header_content = m["my-key"]
+            self.headers = m;
         }
         true
     }
 
     fn create_http_context(&self, _context_id: u32) -> Option<Box<dyn HttpContext>> {
         Some(Box::new(HeaderReplaceFilter{
-            header_content: self.header_content.clone(),
+            headers: self.headers.clone(),
         }))
     
     }
