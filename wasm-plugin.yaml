@@ -1,0 +1,13 @@
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: ossm-example-headers-extension
+spec:
+  pluginConfig:
+    my-key: my-wasm-value
+  url: oci://quay.io/acidonpe/ossm-example-headers-extension:1.0.0
+  priority: 100
+  phase: STATS
+  selector:
+    matchLabels:
+      app: httpbin
